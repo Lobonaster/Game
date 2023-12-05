@@ -1,4 +1,5 @@
 import pygame
+import random
 
 clock = pygame.time.Clock()
 fps = 10  # Больший фпс требует более плавных анимаций, с большим кол-вом кадров
@@ -22,7 +23,9 @@ action_cooldown = 0  # Набирает порог времени для све�
 action_wait_time = 6  # Порог времени, после которого происходят действия; Не допускает прерывания/наслоения анимаций
 potion_effect = 5  # Количество ОЗ, которое восстанавливает одно зелье
 # Прочие переменные
-choice = 0  # Выбор
+unblock = 0  # Разблокирует уровень по индексу в списке
+choice = 0  # Выбор сценария выбранного на карте
+route_choice = 0  # Выбор маршрута(верхнего/нижнего) выбранного на карте
 clicked = False  # Фиксирование нажатия мыши
 game_over = 0  # Статус конца игры; 1:Победа, 2:Поражение
 # Иконки
@@ -35,6 +38,9 @@ restart_button = pygame.image.load("images/icons/restart.png")  # Кольцев
 next_button = pygame.image.load("images/icons/next.png")  # Стрелка Далее
 enemy_button = pygame.image.load("images/icons/enemy.png")  # Иконка лёгкого боя
 elite_button = pygame.image.load("images/icons/elite.png")  # Иконка сложного боя
+boss_button = pygame.image.load("images/icons/boss.png")  # Иконка боя с боссом
+unuse = pygame.image.load("images/icons/unuse.png")  # Иконка запрета иконки 0_0
+unuse = pygame.transform.scale(unuse, (60, 60))
 # Экраны
 win_screen = pygame.image.load("images/icons/win.png")  # Победный
 lose_screen = pygame.image.load("images/icons/lost.png")  # Проигрышный
@@ -260,22 +266,25 @@ enemy2_hp_bar = HealthBar(920, 640, enemy2.hp, enemy2.max_hp)
 
 # Класс кнопок
 class Button():
-    def __init__(self, surface, x, y, image, size_x, size_y):
+    def __init__(self, surface, x, y, image, size_x, size_y, type, usable):
         self.image = pygame.transform.scale(image, (size_x, size_y))
         self.rect = self.image.get_rect()
         self.rect.topleft = (x, y)
         self.clicked = False
         self.surface = surface
-
+        self.type = type
+        self.usable = usable
+        #self.one_time = False
 
     def draw(self):
         action = False
 
         # Получение позиции мыши
+
         pos = pygame.mouse.get_pos()
 
         # check mouseover and clicked conditions
-        if self.rect.collidepoint(pos):
+        if self.rect.collidepoint(pos) and self.usable == True:
             if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
                 action = True
                 self.clicked = True
@@ -285,16 +294,42 @@ class Button():
 
         # Отрисовка кнопки
         self.surface.blit(self.image, (self.rect.x, self.rect.y))
-
+        if not self.usable:
+            self.surface.blit(unuse, (self.rect.x, self.rect.y))
         return action
 
 
 # Кнопки; где их отображать, их размер
-skill_button = Button(screen, 100, screen_height - bottom_panel + 30, potion_button, 96, 96)
-restart_button = Button(screen, 550, 560, restart_button, 140, 140)
-next_button = Button(screen, 550, 560, next_button, 140, 140)
-enemy_button = Button(screen, 320, 170, enemy_button, 140, 140)
-elite_button = Button(screen, 320, 660, elite_button, 140, 140)
+skill_button = Button(screen, 100, screen_height - bottom_panel + 30, potion_button, 96, 96, 'skill', True)
+restart_button = Button(screen, 550, 560, restart_button, 140, 140, 'restart', True)
+next_button = Button(screen, 550, 560, next_button, 140, 140, 'next', True)
+# Кнопки наполняющие карту
+level_buttons = []
+level_buttons1 = []
+i = 0
+while i != 12:
+    rand = random.randint(0, 1)
+    if i < 6:
+        if rand == 1:
+            x = Button(screen, 165 * (1 + i), 165, elite_button, 60, 60, 'elite', False)
+            level_buttons.append(x)
+        else:
+            x = Button(screen, 165*(1+i), 165, enemy_button, 60, 60, 'enemy', True)
+            level_buttons.append(x)
+    else:
+        if rand == 1:
+            x = Button(screen, 164 * (-5 + i), 415, elite_button, 60, 60, 'elite', True)
+            level_buttons1.append(x)
+        else:
+            x = Button(screen, 164*(-5+i), 415, enemy_button, 60, 60, 'enemy', True)
+            level_buttons1.append(x)
+    i += 1
+
+
+temp = 0
+
+#enemy_button = Button(screen, 640, 165, enemy_button, 60, 60)
+#elite_button = Button(screen, 800, 415, elite_button, 60, 60)
 # Игровой цикл
 running = True
 while running:
@@ -310,14 +345,37 @@ while running:
             # the choice enemy
     if map_state == 'main':
         draw_bg(mapIMG)  # Раздел карты уровней
-        if enemy_button.draw():  # При нажатии заставляет отображать экран выбранного боя, а не карту
-            map_state = 'not_main'
-            battle_state = 'main'
-            choice = 1   # Выбор уровня
-        elif elite_button.draw():
-            map_state = 'not_main'
-            battle_state = 'main'
-            choice = 2
+        for i in range(0, len(level_buttons)):
+            level_buttons[i].usable = False
+        level_buttons[unblock].usable = True
+        if route_choice == 2:
+            level_buttons[unblock].usable = False
+        for i in range(0, len(level_buttons)):
+            if level_buttons[i].draw():  # При нажатии заставляет отображать экран выбранного боя, а не карту
+                map_state = 'not_main'
+                battle_state = 'main'
+                route_choice = 1
+                temp = 1
+                if level_buttons[i].type == 'elite':
+                    choice = 2
+                else:
+                    choice = 1
+        for i in range(0, len(level_buttons1)):
+            level_buttons1[i].usable = False
+        level_buttons1[unblock].usable = True
+        if route_choice == 1:
+            level_buttons1[unblock].usable = False
+        for i in range(0, len(level_buttons1)):
+            if level_buttons1[i].draw():  # При нажатии заставляет отображать экран выбранного боя, а не карту
+                map_state = 'not_main'
+                battle_state = 'main'
+                route_choice = 2
+                temp = 1
+                if level_buttons1[i].type == 'elite':
+                    choice = 2
+                else:
+                    choice = 1
+
 
     # Боёвка
     # # !!! Надо реализовать рандомную генерацию карты и наборов врагов, а также переход от уровня к уровню!!!
@@ -437,6 +495,7 @@ while running:
                 knight.reset()
                 for enemy in enemy_list:
                     enemy.reset()
+                unblock += 1
                 current_fighter = 1
                 action_cooldown = 0
                 game_over = 0
