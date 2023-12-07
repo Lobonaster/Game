@@ -30,7 +30,7 @@ route_choice = 0  # Выбор маршрута(верхнего/нижнего)
 clicked = False  # Фиксирование нажатия мыши
 game_over = 0  # Статус конца игры; 1:Победа, 2:Поражение
 special_mark = 0  # Идёт ли бой с боссом?
-play_error_sound = True  # protiv cycklov
+play_error_sound = True  # против заедающих звуков
 # Иконки
 icon = pygame.image.load("images/icons/GameIcon.png")  # Для игры
 pygame.display.set_icon(icon)
@@ -72,9 +72,9 @@ death_sfx = pygame.mixer.Sound("sounds/death.mp3")
 dmpUP_sfx = pygame.mixer.Sound("sounds/dmgUP.mp3")
 heal_sfx = pygame.mixer.Sound("sounds/heal.mp3")
 hit_sfx = pygame.mixer.Sound("sounds/hit.mp3")
-lose_sfx = pygame.mixer.Sound("sounds/lose.mp3")
-win_sfx = pygame.mixer.Sound("sounds/win.mp3")
 battle_end_sfx = pygame.mixer.Sound("sounds/battle_end.mp3")
+background_sfx = pygame.mixer.Sound("sounds/background.mp3")
+final_sfx = pygame.mixer.Sound("sounds/final.mp3")
 # Шрифты
 game_font = pygame.font.Font("Fonts/FFFFORWA.TTF", 17)  # Пока только этот
 # Цвета
@@ -293,7 +293,7 @@ class DamageText(pygame.sprite.Sprite):  # Спрайт цифр урона/ле
 
 damage_text_group = pygame.sprite.Group()
 # Статы бойцов
-knight = Fighter(250, 470, 'Knight', 42, 7, 3)
+knight = Fighter(250, 470, 'Knight', 42, 27, 3)
 enemy1 = Fighter(800, 470, 'Enemy', 18, 4, 0)
 enemy2 = Fighter(1000, 470, 'Enemy', 18, 4, 0)
 enemy3 = Fighter(900, 470, 'boss', 40, 7, 0)
@@ -385,7 +385,13 @@ while i != 12:
     i += 1
 
 temp = 0  # Одноразовая переменная для выбора маршрута
-pygame.mixer.music.set_volume(0.05)
+
+
+background_sfx.play(-1).set_volume(1)
+
+
+
+
 # Игровой цикл
 running = True
 while running:
@@ -539,7 +545,10 @@ while running:
         elif choice == 3:
             draw_bg(stage1IMG)
             draw_panel(panelIMG)
-
+            if play_error_sound:
+                play_error_sound = False
+                background_sfx.stop()
+                final_sfx.play(-1).set_volume(0.2)
             knight.update()
             knight.draw()
             enemy1.alive = False
@@ -627,12 +636,11 @@ while running:
             if game_over == 1:
                 screen.blit(win_screen, (450, 225))
                 if special_mark == 1:
-                    if play_error_sound:
-                        play_error_sound = False
-                        win_sfx.play()
+                    final_sfx.stop()
                     screen.blit(endIMG, (0, 0))
                     screen.blit(win_plus, (940, 520))
                     if restart_button.draw():
+                        background_sfx.play()
                         knight.reset()
                         for enemy in enemy_list:
                             enemy.reset()
@@ -648,9 +656,6 @@ while running:
                         choice = 0
                 else:
                     if next_button.draw():
-                        if play_error_sound:
-                            play_error_sound = False
-                            battle_end_sfx.play()
                         knight.player_reset()
                         for enemy in enemy_list:
                             enemy.reset()
@@ -669,7 +674,6 @@ while running:
                     if enemy.alive is True:
                         enemy.static()
                 if restart_button.draw():
-                    lose_sfx.play()
                     click_sfx.play()
                     knight.reset()
                     for enemy in enemy_list:
