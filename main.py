@@ -293,7 +293,7 @@ class DamageText(pygame.sprite.Sprite):  # Спрайт цифр урона/ле
 
 damage_text_group = pygame.sprite.Group()
 # Статы бойцов
-knight = Fighter(250, 470, 'Knight', 42, 27, 3)
+knight = Fighter(250, 470, 'Knight', 42, 7, 3)
 enemy1 = Fighter(800, 470, 'Enemy', 18, 4, 0)
 enemy2 = Fighter(1000, 470, 'Enemy', 18, 4, 0)
 enemy3 = Fighter(900, 470, 'boss', 40, 7, 0)
